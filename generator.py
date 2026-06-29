@@ -19,7 +19,7 @@ def barcode_rendering(target_folder, used_numbers, index):
     # Save to specified folder
     archive_name = f"{index+1:03d}_{barcode.get_fullcode()}"
     barcode.save(os.path.join(target_folder, archive_name))
-    print(f"Generated barcode {index+1}: {archive_name}.png")
+    # print(f"Generated barcode {index+1}: {archive_name}.png")
 
 def _barcode_gen_thread(n, target_folder, on_progress, on_complete, on_error):
     """Function to run barcode generation in a thread"""
