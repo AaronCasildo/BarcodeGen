@@ -1,9 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox
 from tkinter import filedialog
-# from tkinter import ttk
+from tkinter import ttk
 # import threading
-# import time
+import time
 # Later on we will restore the threading and progress bar functionality, but for now, we will focus on the core functionality of the GUI.
 from generator import generate_barcodes
 from config import config
@@ -90,7 +90,6 @@ def select_folder():
 
 def update_values():
     config["input_value"] = title_entry.get()
-    # print(f"Updated config: {config} ")  # Debugging line
     if not config["target_folder"]:
         messagebox.showerror("Error", "Please select a target folder.")
         return
@@ -99,13 +98,41 @@ def update_values():
         return
     
     if messagebox.askokcancel("Configuration Updated", f"Barcode(s) to generate: {config['input_value']}\nFolder selected: {config['target_folder']}"):
+        sub_ui()  # Show the sub UI
         generate_barcodes(config["input_value"], config["target_folder"],
-                    on_progress = lambda current, total: print(f"Progress: {current}/{total} barcodes generated."),
-                    on_complete = lambda folder: messagebox.showinfo("Completed", f"Barcodes generated successfully in:\n{folder}"),
+                    on_progress = lambda current, total: update_progress(current, total),
+                    on_complete = lambda folder: [messagebox.showinfo("Completed", f"Barcodes generated successfully in:\n{folder}"), config["p_bar"].master.destroy()],
                     on_error = lambda msg: messagebox.showerror("Error", msg))
     else:
         return
-    
+
+# Nice, in this state the progress bar will be updated in real-time as the barcodes are generated, 
+# and the user will be notified upon completion or if any errors occur.
+
+# Maybe I'll change later the UX on the on_complete callback to show an asktocancel type 
+# messagebox to close the progressbar window upon users selection.
+
+def update_progress(current, total):
+    if config["p_bar"] is not None:
+        config["p_bar"]['value'] = (current / total) * 100
+        config["p_bar"].master.update_idletasks()
+
+        progress_percentage = (current / total) * 100
+        config["progress"].config(text=f"{progress_percentage:.2f}%")
+
+def sub_ui():
+    sub_win = tk.Toplevel(root)
+    sub_win.title("Generating Barcodes")
+    sub_win.geometry("300x150")
+
+    tk.Label(sub_win, text="Please wait, loading task...").pack(pady=10)
+
+    config["progress"] = tk.Label(sub_win, text="0%")
+    config["progress"].pack(pady=5)
+
+    config["p_bar"] = ttk.Progressbar(sub_win, orient="horizontal", length=200, mode="determinate")
+    config["p_bar"].pack(pady=10)
+
 def shorten_path(path, max_length=30):
     if len(path) <= max_length:
         return path
