@@ -88,16 +88,24 @@ def select_folder():
 
 def update_values():
     config["input_value"] = title_entry.get()
+    config["type"] = combo.get()
+
     if not config["target_folder"]:
         messagebox.showerror("Error", "Please select a target folder.")
         return
+
+    if not config["type"]:
+        messagebox.showerror("Error", "Please select a barcode type.")
+        return
+    
     if not config["input_value"].isdigit() or int(config["input_value"]) <= 0:
         messagebox.showerror("Error", "Please enter a valid positive number for the quantity of barcodes.")
         return
     
     if messagebox.askokcancel("Configuration Updated", f"Barcode(s) to generate: {config['input_value']}\nFolder selected: {config['target_folder']}"):
         sub_ui()  # Show the sub UI
-        generate_barcodes(config["input_value"], config["target_folder"],
+        # print(f"Generating {config['input_value']} barcodes in {config['target_folder']} of type {config['type']}.")
+        generate_barcodes(config["input_value"], config["target_folder"], config["type"],
                     on_progress = lambda current, total: update_progress(current, total),
                     on_complete = lambda folder: [config["p_bar"].master.destroy(),
                                                   open_folder(folder)],
