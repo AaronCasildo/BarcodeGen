@@ -104,13 +104,7 @@ def update_values():
                     on_error = lambda msg: messagebox.showerror("Error", msg))
     else:
         return
-
-# Nice, in this state the progress bar will be updated in real-time as the barcodes are generated, 
-# and the user will be notified upon completion or if any errors occur.
-
-# Maybe I'll change later the UX on the on_complete callback to show an asktocancel type 
-# messagebox to close the progressbar window upon users selection.
-
+    
 def update_progress(current, total):
     if config["p_bar"] is not None:
         config["p_bar"]['value'] = (current / total) * 100
@@ -154,7 +148,7 @@ def shorten_path(path, max_length=30):
 # Main window
 root = tk.Tk()
 root.title("Barcode Generator v0.4.0-beta")
-root.geometry("450x480")
+root.geometry("450x570")
 root.resizable(False, False)
 
 # Title
@@ -205,16 +199,35 @@ title_entry.insert(0, config["input_value"])
 vcmd = (root.register(only_integer), '%S')
 title_entry.config(validate='key', validatecommand=vcmd)
 
+# Type selection section
+type_frame = tk.Frame(root, bg="#f5f7fa", height=90)
+type_frame.pack(fill=tk.X, pady=10)
+type_frame.pack_propagate(False)
+
+type_selection_label = tk.Label(type_frame, 
+                         text="Select Barcode Type:",
+                         font= ("Arial", 11, "bold"),
+                         fg="#2c3e50",
+                         bg="#f5f7fa")
+type_selection_label.pack(anchor="w", pady=(10), padx=30)
+
+combo = ttk.Combobox(type_frame, 
+                    values=["EAN13", "EAN8", "UPC-A", "JAN13"],
+                    state="readonly", 
+                    font=("Arial", 11))
+combo.pack(padx=30, fill=tk.X)
+combo.current(0)  # Set default selection
+
 # Folder selection section
 folder_frame = tk.Frame(root, bg="#f5f7fa")
-folder_frame.pack(fill=tk.X, padx=30, pady=20)
+folder_frame.pack(fill=tk.X)
 
 folder_label_title = tk.Label(folder_frame, 
                              text="Destination Folder:", 
                              font=("Arial", 11, "bold"),
                              fg="#2c3e50",
                              bg="#f5f7fa")
-folder_label_title.pack(anchor="w", pady=(0, 8))
+folder_label_title.pack(anchor="w", pady=(10, 10), padx=30)
 
 # Button with modern style
 folder_button = RoundedButton(folder_frame, 
@@ -248,7 +261,7 @@ update_button = RoundedButton(folder_frame,
                          active_color="#3d8b40",
                          text_color="white",
                          font=("Arial", 11, "bold"))
-update_button.pack(pady=(0, 10))
+update_button.pack(pady=(0, 15))
 
 def Run():
     root.mainloop()
