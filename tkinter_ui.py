@@ -155,7 +155,7 @@ def shorten_path(path, max_length=30):
 
 # Main window
 root = tk.Tk()
-root.title("Barcode Generator v0.4.0-beta")
+root.title("Barcode Generator v0.5.0-beta")
 root.geometry("450x570")
 root.resizable(False, False)
 
