@@ -1,16 +1,3 @@
-# NOTE:
-# This implementation intentionally favors incremental development over
-# abstraction. Several barcode generation functions share duplicated logic,
-# making this a textbook violation of DRY.
-#
-# TODO:
-# Refactor into a configuration-driven implementation where each barcode type
-# provides its generation parameters (class, input length, prefixes, etc.),
-# allowing a single generation function to handle the common workflow.
-#
-# Threading remains necessary to keep the Tkinter UI responsive during batch
-# generation.
-
 import os
 import random
 import threading
@@ -18,95 +5,45 @@ from barcode import EAN13, EAN8, JAN, UPCA
 from barcode.writer import ImageWriter
 from datetime import datetime
 
-# Single function to generate a single barcode and save it as an image
-def barcode_rendering_EAN13(target_folder, used_numbers, index):
-    # Generate a unique 12-digit number for EAN13 barcode
-    number = ''.join([str(random.randint(0, 9)) for _ in range(12)])
-    while number in used_numbers:
-        number = ''.join([str(random.randint(0, 9)) for _ in range(12)])
-    used_numbers.add(number)
+CODEBAR_CONFIG = { 
+    "EAN13": {"class": EAN13, "length": 12},
+    "EAN8": {"class": EAN8, "length": 7,},
+    "UPC-A": {"class": UPCA, "length": 11},
+    "JAN13": {"class": JAN, "length": 12, "prefix": "45"}
+}
 
-    # Create EAN13 barcode with PNG image
-    barcode = EAN13(number, writer=ImageWriter())
-
-    # Save to specified folder
-    archive_name = f"{index+1:03d}_{barcode.get_fullcode()}"
-    barcode.save(os.path.join(target_folder, archive_name))
-    # print(f"Generated barcode {index+1}: {archive_name}.png")
-
-def barcode_rendering_EAN8(target_folder, used_numbers, index):
-    # Generate a unique 7-digit number for EAN8 barcode
-    number = ''.join([str(random.randint(0, 9)) for _ in range(7)])
-    while number in used_numbers:
-        number = ''.join([str(random.randint(0, 9)) for _ in range(7)])
-    used_numbers.add(number)
-
-    # Create EAN8 barcode with PNG image
-    barcode = EAN8(number, writer=ImageWriter())
-
-    # Save to specified folder
-    archive_name = f"{index+1:03d}_{barcode.get_fullcode()}"
-    barcode.save(os.path.join(target_folder, archive_name))
-
-def barcode_rendering_UPC_A(target_folder, used_numbers, index):
-    # Generate a unique 11-digit number for UPC-A barcode
-    number = ''.join([str(random.randint(0, 9)) for _ in range(11)])
-    while number in used_numbers:
-        number = ''.join([str(random.randint(0, 9)) for _ in range(11)])
-    used_numbers.add(number)
-
-    # Create UPC-A barcode with PNG image
-    barcode = UPCA(number, writer=ImageWriter())
-
-    # Save to specified folder
-    archive_name = f"{index+1:03d}_{barcode.get_fullcode()}"
-    barcode.save(os.path.join(target_folder, archive_name))
-
-def barcode_rendering_JAN13(target_folder, used_numbers, index, country_code="45"):
-    country_code = str(country_code)
-    remaining_digits_count = 12 - len(country_code)
+def generate_unique_number(barcode_type, target_folder, used_numbers, idx):
     
-    while True:
-        random_part = ''.join([str(random.randint(0, 9)) for _ in range(remaining_digits_count)])
-        number = country_code + random_part
-        
-        if number not in used_numbers:
-            used_numbers.add(number)
-            break
+    config = CODEBAR_CONFIG.get(barcode_type)
 
-    barcode = JAN(number, writer=ImageWriter())
-    archive_name = f"{index+1:03d}_{barcode.get_fullcode()}"
+    if not config:
+        raise ValueError(f"Codebar type: {barcode_type} is not supported")
+
+    barcode_class = config["class"]
+    len_code = config["length"]
+    prefix = config.get("prefix", "")
+
+    random_len = len_code - len(prefix)
+    random_part = ''.join([str(random.randint(0, 9)) for _ in range(random_len)])
+    while random_part in used_numbers:
+        random_part = ''.join([str(random.randint(0, 9)) for _ in range(random_len)])
+    used_numbers.add(random_part)
+
+    number = prefix + random_part
+
+    barcode = barcode_class(number, writer=ImageWriter())
+    archive_name = f"{idx+1:03d}_{barcode.get_fullcode()}"
     barcode.save(os.path.join(target_folder, archive_name))
 
 def _barcode_gen_thread(n, target_folder, barcode_type, on_progress, on_complete, on_error):
     """Function to run barcode generation in a thread"""
     try:
         used_numbers = set()
-        match barcode_type:
-            case "EAN13":
-                for i in range(n):
-                    barcode_rendering_EAN13(target_folder, used_numbers, i)
 
-                    if on_progress:
-                        on_progress(i + 1, n)  # Update progress
-            case "EAN8":
-                for i in range(n):
-                    barcode_rendering_EAN8(target_folder, used_numbers, i)
-
-                    if on_progress:
-                        on_progress(i + 1, n)  # Update progress
-            case "UPC-A":
-                for i in range(n):
-                    barcode_rendering_UPC_A(target_folder, used_numbers, i)
-
-                    if on_progress:
-                        on_progress(i + 1, n)  # Update progress
-            case "JAN13":
-                for i in range(n):
-                    barcode_rendering_JAN13(target_folder, used_numbers, i)
-
-                    if on_progress:
-                        on_progress(i + 1, n)  # Update progress
+        for i in range(n):
+                generate_unique_number(barcode_type, target_folder, used_numbers, i)
+                if on_progress:
+                    on_progress(i + 1, n)  # Update progress
 
         if on_complete:
             on_complete(target_folder)  # Notify completion
